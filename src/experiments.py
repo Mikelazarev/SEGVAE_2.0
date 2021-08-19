@@ -88,6 +88,7 @@ def run_experiment_bio_1(
         test_size=10000,
         n_formulas_to_sample=2000,
         formula_predicate=None,
+        log_dir='../logs/'
 ):
     if functions is None:
         functions = ['sin', 'add', 'cos', 'mul']
@@ -101,16 +102,18 @@ def run_experiment_bio_1(
     if formula_predicate is None:
         formula_predicate = lambda func: True
 
-    train_file = 'train_' + str(time.time())
-    val_file = 'val_ ' + str(time.time())
+    os.makedirs(log_dir, exist_ok=True)
+    train_file = os.path.join(log_dir, f'train_{str(time.time())}')
+    val_file = os.path.join(log_dir, f'val_{str(time.time())}')
     rs_equation_generator.generate_pretrain_dataset(train_size, 14, train_file, functions=functions, arities=arities,
                                                     all_tokens=functions + free_variables + constants,
                                                     formula_predicate=formula_predicate)
     rs_equation_generator.generate_pretrain_dataset(test_size, 14, val_file, functions=functions, arities=arities,
                                                     all_tokens=functions + free_variables + constants,
                                                     formula_predicate=formula_predicate)
-    with open('wandb_key') as f:
+    with open('../wandb_key') as f:
         os.environ["WANDB_API_KEY"] = f.read().strip()
+        os.environ["WANDB_DIR"] = '../logs'
 
     vae_solver_params = rs_vae_solver.VAESolverParams(
         device=torch.device('cuda'),
@@ -120,8 +123,8 @@ def run_experiment_bio_1(
         percentile=5,
         initial_xs=X,
         initial_ys=y_true,
-        retrain_file='retrain_1_' + str(time.time()),
-        file_to_sample='sample_1_' + str(time.time()),
+        retrain_file=os.path.join(log_dir, f'retrain_1_{str(time.time())}'),
+        file_to_sample=os.path.join(log_dir, f'sample_1_{str(time.time())}'),
         functions=functions,
         arities={'sin': 1, 'add': 2, 'sub': 2, 'safe_log': 1, 'cos': 1, 'mul': 2,
                  'safe_sqrt': 1, 'safe_exp': 1, 'safe_div': 2, 'safe_pow': 2},
@@ -147,5 +150,5 @@ def run_experiment_bio_1(
 
     logger = rs_logger.WandbLogger(wandb_proj,  project_name, logger_init_conf)
     vs = rs_vae_solver.VAESolver(logger, None, vae_solver_params)
-    vs.create_checkpoint('checkpoint_1')
+    vs.create_checkpoint(os.path.join(log_dir, 'checkpoint_1'))
     vs.solve((X, y_true), epochs=epochs)

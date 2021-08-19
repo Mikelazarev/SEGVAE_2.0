@@ -187,7 +187,7 @@ class FormulaVARE(nn.Module):
             f[:f.index(config.END_OF_SEQUENCE)] \
                 if config.END_OF_SEQUENCE in f else f for f in reconstructed_formulas]
 
-        return reconstructed_formulas
+        return np.asarray(reconstructed_formulas, dtype=np.object)
 
     def maybe_write_formulas(self, reconstructed_formulas, zs, out_file=None):
         """
