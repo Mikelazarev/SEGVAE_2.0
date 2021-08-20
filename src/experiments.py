@@ -2,6 +2,7 @@ import roboscientist.solver.vae_solver as rs_vae_solver
 import roboscientist.equation.equation as rs_equation
 import roboscientist.logger.wandb_logger as rs_logger
 import equation_generator as rs_equation_generator
+from roboscientist.equation import operators
 import torch
 
 import os
@@ -83,7 +84,7 @@ def run_experiment_bio_1(
         wandb_proj='some_experiments',  # string
         project_name='COLAB',  # string
         constants=None,  # None or ['const']
-        epochs=400,
+        epochs=100,
         train_size=20000,
         test_size=10000,
         n_formulas_to_sample=2000,
@@ -98,7 +99,7 @@ def run_experiment_bio_1(
     if free_variables is None:
         free_variables = ['x1']
     if constants is None:
-        constants = ['const']
+        constants = []
     if formula_predicate is None:
         formula_predicate = lambda func: True
 
@@ -106,10 +107,10 @@ def run_experiment_bio_1(
     train_file = os.path.join(log_dir, f'train_{str(time.time())}')
     val_file = os.path.join(log_dir, f'val_{str(time.time())}')
     rs_equation_generator.generate_pretrain_dataset(train_size, 14, train_file, functions=functions, arities=arities,
-                                                    all_tokens=functions + free_variables + constants,
+                                                    all_tokens=functions + free_variables + constants + ['float'],
                                                     formula_predicate=formula_predicate)
     rs_equation_generator.generate_pretrain_dataset(test_size, 14, val_file, functions=functions, arities=arities,
-                                                    all_tokens=functions + free_variables + constants,
+                                                    all_tokens=functions + free_variables + constants + ['float'],
                                                     formula_predicate=formula_predicate)
     with open('../wandb_key') as f:
         os.environ["WANDB_API_KEY"] = f.read().strip()
@@ -119,6 +120,7 @@ def run_experiment_bio_1(
         device=torch.device('cuda'),
         true_formula=None,
         optimizable_constants=constants,
+        float_constants=operators.FLOAT_CONST,
         kl_coef=0.5,
         percentile=5,
         initial_xs=X,
@@ -148,7 +150,7 @@ def run_experiment_bio_1(
     for key, item in logger_init_conf.items():
         logger_init_conf[key] = str(item)
 
-    logger = rs_logger.WandbLogger(wandb_proj,  project_name, logger_init_conf)
+    logger = rs_logger.WandbLogger(wandb_proj,  project_name, logger_init_conf, mode='online')
     vs = rs_vae_solver.VAESolver(logger, None, vae_solver_params)
     vs.create_checkpoint(os.path.join(log_dir, 'checkpoint_1'))
     vs.solve((X, y_true), epochs=epochs)

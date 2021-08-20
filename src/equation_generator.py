@@ -2,7 +2,7 @@
 
 import random
 import numpy as np
-
+from roboscientist.equation import operators
 
 def generate_formula(all_tokens, max_len, functions, arities):
     while True:
@@ -14,6 +14,8 @@ def generate_formula(all_tokens, max_len, functions, arities):
             if 'const' in token:
                 token = token
                 const_ind += 1
+            if 'float' in token:
+                token = random.choice(operators.FLOAT_CONST)
             formula.append(token)
             if token in functions:
                 tokens_required += (arities[token] - 1)
@@ -47,7 +49,7 @@ def generate_pretrain_dataset(size, max_len, file=None, functions=None, arities=
         formulas += new_formulas
         formulas = list(np.unique(formulas))
         formulas = [formula for formula in formulas if formula_predicate(formula)]
-        print(len(formulas))
+        # print(len(formulas))
         formulas = formulas[:size]
 
     if file is not None:

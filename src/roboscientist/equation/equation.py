@@ -28,7 +28,7 @@ class Equation:
         stack = deque()
         const_ind = 0
         for elem in self._prefix_list[::-1]:
-            if elem in rs_operators.VARIABLES:
+            if elem in rs_operators.VARIABLES or elem in rs_operators.FLOAT_CONST:
                 stack.append(elem)
                 continue
             if elem == rs_operators.CONST_SYMBOL:
@@ -57,6 +57,9 @@ class Equation:
         stack = deque()
         const_ind = 0
         for elem in self._prefix_list[::-1]:
+            if elem in rs_operators.FLOAT_CONST:
+                stack.append(float(elem))
+                continue
             if elem in rs_operators.VARIABLES:
                 stack.append(X[:,rs_operators.VARIABLES[elem]])
                 continue
@@ -83,7 +86,7 @@ class Equation:
         self._const_count = 0
         stack = deque()
         for elem in self._prefix_list[::-1]:
-            if elem in rs_operators.VARIABLES or elem == rs_operators.CONST_SYMBOL:
+            if elem in rs_operators.VARIABLES or elem == rs_operators.CONST_SYMBOL or elem in rs_operators.FLOAT_CONST:
                 stack.append(elem)
                 if elem == rs_operators.CONST_SYMBOL:
                     self._const_count += 1

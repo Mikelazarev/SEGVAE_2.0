@@ -181,6 +181,7 @@ class VAESolver(rs_solver_base.BaseSolver):
         if checkpoint_file is not None:
             self._load_from_checkpoint(checkpoint_file)
         else:
+            print("===== START PRETRAIN =====")
             self.pretrain_batches, _ = rs_train.build_ordered_batches(formula_file=self.params.pretrain_train_file,
                                                                       solver=self)
             self.valid_batches, _ = rs_train.build_ordered_batches(formula_file=self.params.pretrain_val_file,
@@ -188,6 +189,7 @@ class VAESolver(rs_solver_base.BaseSolver):
             rs_train.pretrain(n_pretrain_steps=self.params.n_pretrain_steps, model=self.model, optimizer=self.optimizer,
                            pretrain_batches=self.pretrain_batches, pretrain_val_batches=self.valid_batches,
                            kl_coef=self.params.kl_coef)
+            print("===== END PRETRAIN =====")
 
     def log_metrics(self, reference_dataset, candidate_equations, all_constants, custom_log):
         if not self.params.active_learning:
@@ -231,15 +233,15 @@ class VAESolver(rs_solver_base.BaseSolver):
         with open(self.params.file_to_sample) as f:
             for line in f:
                 n_all += 1
-                def isfloat(value):
-                    try:
-                        float(value)
-                        return True
-                    except ValueError:
-                        return False
+                # def isfloat(value):
+                #     try:
+                #         float(value)
+                #         return True
+                #     except ValueError:
+                #         return False
 
                 f_to_eval = line.strip().split()
-                f_to_eval = [float(x) if isfloat(x) else x for x in f_to_eval]
+                # f_to_eval = [float(x) if isfloat(x) else x for x in f_to_eval]
                 f_to_eval = rs_equation.Equation(f_to_eval)
                 if not f_to_eval.check_validity()[0]:
                     n_invalid += 1
@@ -255,8 +257,8 @@ class VAESolver(rs_solver_base.BaseSolver):
                     continue
 
                 y = f_to_eval.func(self.xs.reshape(-1, self.params.model_params['x_dim']), constants)
-                if y.shape == (1,) or y.shape == (1, 1) or y.shape == ():
-                    y = np.repeat(y.astype(np.float64),
+                if type(y) is float or y.shape == (1,) or y.shape == (1, 1) or y.shape == ():
+                    y = np.repeat(np.array(y).astype(np.float64),
                                   self.xs.reshape(-1, self.params.model_params['x_dim']).shape[0]).reshape(-1, 1)
                 mse = mean_squared_error(y, self.ys)
                 valid_formulas.append(line.strip())
