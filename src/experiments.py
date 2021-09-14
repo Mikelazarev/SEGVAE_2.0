@@ -84,6 +84,8 @@ def run_experiment_bio_1(
         wandb_proj='some_experiments',  # string
         project_name='COLAB',  # string
         constants=None,  # None or ['const']
+        const_opt_method='bfgs',
+        float_constants=None,
         epochs=100,
         train_size=20000,
         test_size=10000,
