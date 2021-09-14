@@ -48,7 +48,7 @@ def generate_pretrain_dataset(size, max_len, file=None, functions=None, arities=
         # new_formulas = [' '.join(f) for f in new_formulas]
         formulas += new_formulas
         formulas = list(np.unique(formulas))
-        formulas = [formula for formula in formulas if formula_predicate(formula)]
+        formulas = [formula for formula in formulas if formula_predicate(formula.strip().split())]
         # print(len(formulas))
         formulas = formulas[:size]
 
