@@ -1,1 +1,11 @@
-# RoboScientist2.0
+# RoboScientist
+
+RoboScientist is a deep learning framework for symbolic regression.
+
+
+# Getting started
+1. Clone or download this repo. `cd` yourself to it's root directory.
+2. Grab or build a working python enviromnent. [Anaconda](https://www.anaconda.com/) works fine.
+3. Install packages from `requirements.txt`
+ * You will also need jupyter or some other way to work with .ipynb files
+4. Run jupyter notebook and open a notebook in `./notebooks/`
