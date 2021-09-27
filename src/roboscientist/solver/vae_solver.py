@@ -197,11 +197,12 @@ class VAESolver(rs_solver_base.BaseSolver):
             print("===== END PRETRAIN =====")
 
     def log_metrics(self, reference_dataset, candidate_equations, all_constants, custom_log):
-        if not self.params.active_learning:
-            self._logger.log_metrics(reference_dataset, candidate_equations, all_constants)
-        else:
-            self._logger.log_metrics(reference_dataset, candidate_equations, all_constants, self.xs, self.ys)
-        self._logger.commit_metrics(custom_log)
+        if self._logger is not None:
+            if not self.params.active_learning:
+                self._logger.log_metrics(reference_dataset, candidate_equations, all_constants)
+            else:
+                self._logger.log_metrics(reference_dataset, candidate_equations, all_constants, self.xs, self.ys)
+            self._logger.commit_metrics(custom_log)
 
     def create_checkpoint(self, checkpoint_file):
         torch.save({
