@@ -147,6 +147,7 @@ def run_experiment_bio_1(
         n_formulas_to_sample=n_formulas_to_sample,
         pretrain_train_file=train_file,
         pretrain_val_file=val_file,
+        const_opt_method=const_opt_method,
     )
 
     logger_init_conf = {

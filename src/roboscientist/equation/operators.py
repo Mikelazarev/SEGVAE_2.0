@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 
 
 class Operator:
@@ -10,28 +11,47 @@ class Operator:
 
 
 def _SAFE_LOG_FUNC(x):
-    with np.errstate(divide='ignore', invalid='ignore'):
-        return np.where(x > 0.0001, np.log(np.abs(x)), 0.0)
+    if isinstance(x, torch.Tensor):
+        return torch.where(x > 0.0001, torch.log(torch.abs(x)), torch.tensor(0.0))
+    else:
+        with np.errstate(divide='ignore', invalid='ignore'):
+            return np.where(x > 0.0001, np.log(np.abs(x)), 0.0)
 
 
 def _SAFE_DIV_FUNC(x, y):
-    with np.errstate(divide='ignore', invalid='ignore', over='ignore'):
-        return np.where(np.abs(y) > 0.001, np.divide(x, y), 0.0)
+    if isinstance(x, torch.Tensor) or isinstance(y, torch.Tensor):
+        x = torch.as_tensor(x)
+        y = torch.as_tensor(y)
+        return torch.where(torch.abs(y) > 0.001, torch.divide(x, y), torch.tensor(0.0))
+    else:
+        with np.errstate(divide='ignore', invalid='ignore', over='ignore'):
+            return np.where(np.abs(y) > 0.001, np.divide(x, y), 0.0)
 
 
 def _SAFE_SQRT_FUNC(x):
-    with np.errstate(divide='ignore', invalid='ignore'):
-        return np.where(x > 0, np.sqrt(np.abs(x)), 0.0)
+    if isinstance(x, torch.Tensor):
+        return torch.where(x > 0, torch.sqrt(torch.abs(x)), torch.tensor(0.0))
+    else:
+        with np.errstate(divide='ignore', invalid='ignore'):
+            return np.where(x > 0, np.sqrt(np.abs(x)), 0.0)
 
 
 def _SAFE_EXP_FUNC(x):
-    with np.errstate(divide='ignore', invalid='ignore', over='ignore'):
-        return np.where(x < 10, np.exp(x), np.exp(10))
+    if isinstance(x, torch.Tensor):
+        return torch.where(x < 10, torch.exp(x), torch.exp(torch.tensor(10.0)))
+    else:
+        with np.errstate(divide='ignore', invalid='ignore', over='ignore'):
+            return np.where(x < 10, np.exp(x), np.exp(10))
 
 
 def _SAFE_POW_FUNC(x, y):
-    with np.errstate(divide='ignore', invalid='ignore', over='ignore'):
+    if isinstance(x, torch.Tensor) or isinstance(y, torch.Tensor):
+        x = torch.as_tensor(x)
+        y = torch.as_tensor(y)
         return _SAFE_EXP_FUNC(y * _SAFE_LOG_FUNC(x))
+    else:
+        with np.errstate(divide='ignore', invalid='ignore', over='ignore'):
+            return _SAFE_EXP_FUNC(y * _SAFE_LOG_FUNC(x))
 
 
 OPERATORS = {
@@ -92,7 +112,7 @@ OPERATORS = {
     'safe_pow': Operator(
         func=lambda x, y: _SAFE_POW_FUNC(x, y),
         name='safe_pow',
-        repr=lambda x, y: f'(x^{y})',
+        repr=lambda x, y: f'({x}^{y})',
         arity=2,
     ),
 }

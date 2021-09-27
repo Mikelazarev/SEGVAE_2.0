@@ -96,6 +96,8 @@ VAESolverParams = namedtuple(
         'active_learning_n_sample',                 # Int: number of formulas to sample for active learning metric
                                                     # calculation
         'active_learning_file_to_sample',           # Srt: path to file to sample formulas to
+
+        'const_opt_method',                         # Str: Type of constant optimizers. Should be one of "bfgs", "adam"
     ])
 
 VAESolverParams.__new__.__defaults__ = (
@@ -144,6 +146,7 @@ VAESolverParams.__new__.__defaults__ = (
     100,                                            # active_learning_n_x_candidates
     5000,                                           # active_learning_n_sample
     'active_learning_sample',                       # active_learning_file_to_sample
+    'bfgs',                                         # const_opt_method
 )
 
 
@@ -177,6 +180,8 @@ class VAESolver(rs_solver_base.BaseSolver):
 
         self.xs = self.params.initial_xs.reshape(-1, self.params.model_params['x_dim'])
         self.ys = self.params.initial_ys
+
+        self.const_opt_method = self.params.const_opt_method
 
         if checkpoint_file is not None:
             self._load_from_checkpoint(checkpoint_file)
@@ -251,7 +256,7 @@ class VAESolver(rs_solver_base.BaseSolver):
                     n_false_predicate += 1
                     continue
 
-                constants = rs_optimize_constants.optimize_constants(f_to_eval, self.xs, self.ys)
+                constants = rs_optimize_constants.optimize_constants(f_to_eval, self.xs, self.ys, self.const_opt_method)
                 if f_to_eval.const_count() > 0 and constants is None:
                     n_optimize_failed += 1
                     continue
