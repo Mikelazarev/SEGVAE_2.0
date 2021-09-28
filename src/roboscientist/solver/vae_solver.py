@@ -10,6 +10,7 @@ from sklearn.metrics import mean_squared_error
 import torch
 
 from collections import deque, namedtuple
+from joblib import Parallel, delayed
 import numpy as np
 import random
 
@@ -228,49 +229,40 @@ class VAESolver(rs_solver_base.BaseSolver):
 
         # self._maybe_remove_noise_from_model_params(epoch, noises)
 
-        valid_formulas = []
-        valid_equations = []
-        valid_mses = []
-        all_constants = []
-        n_all = 0
-        n_false_predicate = 0
-        n_invalid = 0
-        n_optimize_failed = 0
+        def process_func(line):
+            f_to_eval = line.strip().split()
+            f_to_eval = rs_equation.Equation(f_to_eval)
+            if not f_to_eval.check_validity()[0]:
+                return None, None, None, None, 1, 0, 0
+
+            if not self.params.formula_predicate(line.strip().split()):
+                return None, None, None, None, 0, 1, 0
+
+            constants = rs_optimize_constants.optimize_constants(f_to_eval, self.xs, self.ys, self.const_opt_method)
+            if f_to_eval.const_count() > 0 and constants is None:
+                return None, None, None, None, 0, 0, 1
+
+            y = f_to_eval.func(self.xs.reshape(-1, self.params.model_params['x_dim']), constants)
+            if type(y) is float or y.shape == (1,) or y.shape == (1, 1) or y.shape == ():
+                y = np.repeat(np.array(y).astype(np.float64),
+                              self.xs.reshape(-1, self.params.model_params['x_dim']).shape[0]).reshape(-1, 1)
+            mse = mean_squared_error(y, self.ys)
+            return line.strip(), mse, f_to_eval, constants, 0, 0, 0
+
         with open(self.params.file_to_sample) as f:
-            for line in f:
-                n_all += 1
-                # def isfloat(value):
-                #     try:
-                #         float(value)
-                #         return True
-                #     except ValueError:
-                #         return False
+            lines = f.readlines()
+            n_all = len(lines)
+            result = Parallel(n_jobs=4)(delayed(process_func)(line) for line in lines)
+            valid_formulas, valid_mses, valid_equations, all_constants, \
+                invalid, false_predicate, optimize_failed = list(zip(*result))
+            valid_formulas = [x for x in valid_formulas if x is not None]
+            valid_mses = [x for x in valid_mses if x is not None]
+            valid_equations = [x for x in valid_equations if x is not None]
+            all_constants = [x for x in all_constants if x is not None]
+            n_invalid = sum(invalid)
+            n_false_predicate = sum(false_predicate)
+            n_optimize_failed = sum(optimize_failed)
 
-                f_to_eval = line.strip().split()
-                # f_to_eval = [float(x) if isfloat(x) else x for x in f_to_eval]
-                f_to_eval = rs_equation.Equation(f_to_eval)
-                if not f_to_eval.check_validity()[0]:
-                    n_invalid += 1
-                    continue
-
-                if not self.params.formula_predicate(line.strip().split()):
-                    n_false_predicate += 1
-                    continue
-
-                constants = rs_optimize_constants.optimize_constants(f_to_eval, self.xs, self.ys, self.const_opt_method)
-                if f_to_eval.const_count() > 0 and constants is None:
-                    n_optimize_failed += 1
-                    continue
-
-                y = f_to_eval.func(self.xs.reshape(-1, self.params.model_params['x_dim']), constants)
-                if type(y) is float or y.shape == (1,) or y.shape == (1, 1) or y.shape == ():
-                    y = np.repeat(np.array(y).astype(np.float64),
-                                  self.xs.reshape(-1, self.params.model_params['x_dim']).shape[0]).reshape(-1, 1)
-                mse = mean_squared_error(y, self.ys)
-                valid_formulas.append(line.strip())
-                valid_mses.append(mse)
-                valid_equations.append(f_to_eval)
-                all_constants.append(constants)
         custom_log['unique_valid_formulas_sampled_percentage'] = (self.params.n_formulas_to_sample - n_invalid) / \
                                                                  self.params.n_formulas_to_sample
         custom_log['unique_formulas_sampled_percentage'] = n_all / self.params.n_formulas_to_sample
