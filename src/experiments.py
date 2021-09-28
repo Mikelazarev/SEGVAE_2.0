@@ -30,7 +30,9 @@ def run_experiment(
         train_size=20000,
         test_size=10000,
         n_formulas_to_sample=2000,
-        formula_predicate=None
+        max_formula_length=15,
+        formula_predicate=None,
+        device=torch.device('cuda')
 ):
     if functions is None:
         functions = ['sin', 'add', 'cos', 'mul']
@@ -53,15 +55,17 @@ def run_experiment(
     os.makedirs(log_dir, exist_ok=True)
     train_file = os.path.join(log_dir, f'train_{str(time.time())}')
     val_file = os.path.join(log_dir, f'val_{str(time.time())}')
-    rs_equation_generator.generate_pretrain_dataset(train_size, 14, train_file, functions=functions, arities=arities,
+    rs_equation_generator.generate_pretrain_dataset(train_size, max_formula_length, train_file,
+                                                    functions=functions, arities=arities,
                                                     all_tokens=functions + free_variables + constants + pretrain_float_token,
                                                     formula_predicate=formula_predicate)
-    rs_equation_generator.generate_pretrain_dataset(test_size, 14, val_file, functions=functions, arities=arities,
+    rs_equation_generator.generate_pretrain_dataset(test_size, max_formula_length, val_file,
+                                                    functions=functions, arities=arities,
                                                     all_tokens=functions + free_variables + constants + pretrain_float_token,
                                                     formula_predicate=formula_predicate)
 
     vae_solver_params = rs_vae_solver.VAESolverParams(
-        device=torch.device('cuda'),
+        device=device,
         true_formula=true_formula,
         optimizable_constants=constants,
         float_constants=float_constants,
@@ -85,6 +89,7 @@ def run_experiment(
         pretrain_train_file=train_file,
         pretrain_val_file=val_file,
         const_opt_method=const_opt_method,
+        max_formula_length=max_formula_length,
     )
 
     if os.path.isfile(os.path.join(root_dir, 'wandb_key')):
@@ -124,11 +129,12 @@ def run_experiment(
             success = True if tm < 1e-9 else False
             data.append([i + 1, f.repr(constants), m, tm, success])
         return data
-    wandb.log({
-        'all_time_best': wandb.Table(data=final_log(10, vs.stats.all_best_mses, vs.stats.all_best_formulas),
-                                     columns=['rank', 'formula', 'mse', 'true_mse', 'success']),
-        'last_step_best': wandb.Table(data=final_log(10, vs.stats.last_n_best_mses, vs.stats.last_n_best_formulas),
-                                      columns=['rank', 'formula', 'mse', 'true_mse', 'success']),
-    })
+    if logger is not None:
+        wandb.log({
+            'all_time_best': wandb.Table(data=final_log(10, vs.stats.all_best_mses, vs.stats.all_best_formulas),
+                                         columns=['rank', 'formula', 'mse', 'true_mse', 'success']),
+            'last_step_best': wandb.Table(data=final_log(10, vs.stats.last_n_best_mses, vs.stats.last_n_best_formulas),
+                                          columns=['rank', 'formula', 'mse', 'true_mse', 'success']),
+        })
 
     return vs
