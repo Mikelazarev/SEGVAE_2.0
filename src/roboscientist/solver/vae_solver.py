@@ -324,6 +324,8 @@ class FormulaStatisticsLastN:
         self.last_n_best_mses = []
         self.last_n_best_sizes = deque([0] * use_n_last_steps, maxlen=use_n_last_steps)
         self.percentile = percentile
+        self.all_best_formulas = []
+        self.all_best_mses = []
 
     def clear_the_oldest_step(self):
         s = self.last_n_best_sizes.popleft()
@@ -340,6 +342,9 @@ class FormulaStatisticsLastN:
         self.last_n_best_sizes.append(len(epoch_best_formulas))
         self.last_n_best_mses += epoch_best_mses
         self.last_n_best_formulas += epoch_best_formulas
+
+        self.all_best_formulas += epoch_best_formulas
+        self.all_best_mses += epoch_best_mses
 
     def write_last_n_to_file(self, filename):
         with open(filename, 'w') as f:

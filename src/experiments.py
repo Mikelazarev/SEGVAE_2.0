@@ -1,5 +1,8 @@
+import wandb
+
 import roboscientist.solver.vae_solver as rs_vae_solver
 import roboscientist.equation.equation as rs_equation
+import roboscientist.solver.vae_solver_lib.optimize_constants as rs_optimize_constants
 import roboscientist.logger.wandb_logger as rs_logger
 import equation_generator as rs_equation_generator
 import torch
@@ -7,11 +10,14 @@ import torch
 import os
 import time
 import warnings
+import numpy as np
+from sklearn.metrics import mean_squared_error
 
 
 def run_experiment(
         X,
         y_true,
+        true_formula=None,
         functions=None,  # list, subset of ['sin', 'add', 'safe_log', 'safe_sqrt', 'cos', 'mul', 'sub']
         arities=None,
         free_variables=None,  # ['x1']
@@ -56,7 +62,7 @@ def run_experiment(
 
     vae_solver_params = rs_vae_solver.VAESolverParams(
         device=torch.device('cuda'),
-        true_formula=None,
+        true_formula=true_formula,
         optimizable_constants=constants,
         float_constants=float_constants,
         formula_predicate=formula_predicate,
@@ -93,4 +99,36 @@ def run_experiment(
     vs = rs_vae_solver.VAESolver(logger, None, vae_solver_params)
     vs.create_checkpoint(os.path.join(log_dir, 'checkpoint_1'))
     vs.solve((X, y_true), epochs=epochs)
+
+    def final_log(top_k, mses, formulas):
+        top_indices = np.argsort(mses)[:top_k]
+        top_formulas = np.array(formulas)[top_indices]
+        top_mses = np.array(mses)[top_indices]
+        data = []
+
+        const = rs_optimize_constants.optimize_constants(true_formula, X, y_true, const_opt_method)
+        yt = true_formula.func(X, const)
+        if type(yt) is float or yt.shape == (1,) or yt.shape == (1, 1) or yt.shape == ():
+            yt = np.repeat(np.array(yt).astype(np.float64),
+                           X.reshape(-1, vs.params.model_params['x_dim']).shape[0]).reshape(-1, 1)
+
+        for i, (f, m) in enumerate(zip(top_formulas, top_mses)):
+            f = rs_equation.Equation(f.split())
+            const = rs_optimize_constants.optimize_constants(f, X, y_true, const_opt_method)
+            y_pred = f.func(X, const)
+            if type(y_pred) is float or y_pred.shape == (1,) or y_pred.shape == (1, 1) or y_pred.shape == ():
+                y_pred = np.repeat(np.array(y_pred).astype(np.float64),
+                                   X.reshape(-1, vs.params.model_params['x_dim']).shape[0]).reshape(-1, 1)
+
+            tm = mean_squared_error(y_pred, yt)
+            success = True if tm < 1e-9 else False
+            data.append([i + 1, f.repr(constants), m, tm, success])
+        return data
+    wandb.log({
+        'all_time_best': wandb.Table(data=final_log(10, vs.stats.all_best_mses, vs.stats.all_best_formulas),
+                                     columns=['rank', 'formula', 'mse', 'true_mse', 'success']),
+        'last_step_best': wandb.Table(data=final_log(10, vs.stats.last_n_best_mses, vs.stats.last_n_best_formulas),
+                                      columns=['rank', 'formula', 'mse', 'true_mse', 'success']),
+    })
+
     return vs
