@@ -48,10 +48,14 @@ def _SAFE_POW_FUNC(x, y):
     if isinstance(x, torch.Tensor) or isinstance(y, torch.Tensor):
         x = torch.as_tensor(x)
         y = torch.as_tensor(y)
-        return _SAFE_EXP_FUNC(y * _SAFE_LOG_FUNC(x))
+        coeff = torch.where(torch.eq(torch.fmod(y, 1), 0), (-1) ** y, 0.0)
+        return torch.where(x > 0, _SAFE_EXP_FUNC(y * _SAFE_LOG_FUNC(x)),
+                           coeff * _SAFE_EXP_FUNC(y * _SAFE_LOG_FUNC(torch.abs(x))))
     else:
         with np.errstate(divide='ignore', invalid='ignore', over='ignore'):
-            return _SAFE_EXP_FUNC(y * _SAFE_LOG_FUNC(x))
+            coeff = np.where(np.equal(np.mod(y, 1), 0), (-1) ** y, 0.0)
+            return np.where(x > 0, _SAFE_EXP_FUNC(y * _SAFE_LOG_FUNC(x)),
+                            coeff * _SAFE_EXP_FUNC(y * _SAFE_LOG_FUNC(np.abs(x))))
 
 
 OPERATORS = {
