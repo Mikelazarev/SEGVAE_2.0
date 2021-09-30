@@ -106,6 +106,10 @@ def run_experiment(
     vs.solve((X, y_true), epochs=epochs)
 
     def final_log(top_k, mses, formulas):
+        used = set()
+        unique_pairs = [x for x in zip(mses, formulas) if x[1] not in used and (used.add(x[1]) or True)]
+        mses, formulas = list(zip(*unique_pairs))
+
         top_indices = np.argsort(mses)[:top_k]
         top_formulas = np.array(formulas)[top_indices]
         top_mses = np.array(mses)[top_indices]
