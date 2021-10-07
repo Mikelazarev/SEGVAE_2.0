@@ -17,7 +17,7 @@ class Equation:
         self._prefix_list = prefix_list
         self._repr = None
         self._const_count = None
-        self._status = self.validate()
+        self._status, self.complexity = self.validate()
 
     def check_validity(self):
         return self._status == 'OK', self._status
@@ -84,22 +84,25 @@ class Equation:
 
     def validate(self):
         self._const_count = 0
+        complexity = 0
         stack = deque()
         for elem in self._prefix_list[::-1]:
             if elem in rs_operators.VARIABLES or elem == rs_operators.CONST_SYMBOL or elem in rs_operators.FLOAT_CONST:
                 stack.append(elem)
+                complexity += rs_operators.VAR_CONST_COMPLEXITY
                 if elem == rs_operators.CONST_SYMBOL:
                     self._const_count += 1
                 continue
             if elem in rs_operators.OPERATORS:
                 operator = rs_operators.OPERATORS[elem]
+                complexity += operator.complexity
                 if len(stack) < operator.arity:
-                    return f'Invalid Equation {self._prefix_list}'
+                    return f'Invalid Equation {self._prefix_list}', None
                 args = [stack.pop() for _ in range(operator.arity)]
                 stack.append(operator.repr(*args))
                 continue
-            return f'Invalid symbol in Equation {self._prefix_list}'
+            return f'Invalid symbol in Equation {self._prefix_list}', None
         if len(stack) != 1:
-            return f'Invalid Equation {self._prefix_list}'
+            return f'Invalid Equation {self._prefix_list}', None
         self._repr = stack.pop()
-        return 'OK'
+        return 'OK', complexity
