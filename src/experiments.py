@@ -133,12 +133,44 @@ def run_experiment(
             success = True if tm < 1e-9 else False
             data.append([i + 1, f.repr(constants), m, tm, success])
         return data
+
+    def final_log2(pareto_best_formulas):
+        complexity_best, pareto_best = [], []
+        error_to_beat = 1e9
+        pareto_best_formulas = dict(sorted(pareto_best_formulas.items()))
+
+        const = rs_optimize_constants.optimize_constants(true_formula, X, y_true, const_opt_method)
+        yt = true_formula.func(X, const)
+        if type(yt) is float or yt.shape == (1,) or yt.shape == (1, 1) or yt.shape == ():
+            yt = np.repeat(np.array(yt).astype(np.float64),
+                           X.reshape(-1, vs.params.model_params['x_dim']).shape[0]).reshape(-1, 1)
+        for complexity, (formula, error) in pareto_best_formulas.items():
+            f = rs_equation.Equation(formula.split())
+            const = rs_optimize_constants.optimize_constants(f, X, y_true, const_opt_method)
+            y_pred = f.func(X, const)
+            if type(y_pred) is float or y_pred.shape == (1,) or y_pred.shape == (1, 1) or y_pred.shape == ():
+                y_pred = np.repeat(np.array(y_pred).astype(np.float64),
+                                   X.reshape(-1, vs.params.model_params['x_dim']).shape[0]).reshape(-1, 1)
+
+            tm = mean_squared_error(y_pred, yt)
+            success = True if tm < 1e-9 else False
+            complexity_best.append([complexity, f.repr(constants), error, tm, success])
+            if error < error_to_beat:
+                error_to_beat = error
+                pareto_best.append([complexity, f.repr(constants), error, tm, success])
+
+        return complexity_best, pareto_best
+    complexity_best, pareto_best = final_log2(vs.stats.all_best_per_complexity)
     if logger is not None:
         wandb.log({
             'all_time_best': wandb.Table(data=final_log(10, vs.stats.all_best_mses, vs.stats.all_best_formulas),
                                          columns=['rank', 'formula', 'mse', 'true_mse', 'success']),
             'last_step_best': wandb.Table(data=final_log(10, vs.stats.last_n_best_mses, vs.stats.last_n_best_formulas),
                                           columns=['rank', 'formula', 'mse', 'true_mse', 'success']),
+            'complexity_best': wandb.Table(data=complexity_best,
+                                           columns=['complexity', 'formula', 'mse', 'true_mse', 'success']),
+            'pareto_best': wandb.Table(data=pareto_best,
+                                       columns=['complexity', 'formula', 'mse', 'true_mse', 'success'])
         })
 
     return vs

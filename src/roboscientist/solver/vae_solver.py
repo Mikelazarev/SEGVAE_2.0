@@ -318,6 +318,7 @@ class FormulaStatisticsLastN:
         self.percentile = percentile
         self.all_best_formulas = []
         self.all_best_mses = []
+        self.all_best_per_complexity = {}
 
     def clear_the_oldest_step(self):
         s = self.last_n_best_sizes.popleft()
@@ -337,6 +338,16 @@ class FormulaStatisticsLastN:
 
         self.all_best_formulas += epoch_best_formulas
         self.all_best_mses += epoch_best_mses
+
+        for error, formula in zip(sampled_mses, sampled_formulas):
+            eq = rs_equation.Equation(formula.split())
+            if eq.complexity not in self.all_best_per_complexity:
+                self.all_best_per_complexity[eq.complexity] = (formula, error)
+            else:
+                _, current_error = self.all_best_per_complexity[eq.complexity]
+                if error < current_error:
+                    self.all_best_per_complexity[eq.complexity] = (formula, error)
+
 
     def write_last_n_to_file(self, filename):
         with open(filename, 'w') as f:
