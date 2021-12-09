@@ -15,6 +15,8 @@ class BaseSolver:
         for epoch in range(epochs):
             self._epoch = epoch
             candidate_equations, all_constants, custom_log = self._training_step(reference_dataset, epoch)
+            if candidate_equations is None:
+                break
             self.log_metrics(reference_dataset, candidate_equations, all_constants, custom_log)
 
         return candidate_equations

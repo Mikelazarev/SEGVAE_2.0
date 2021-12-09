@@ -27,12 +27,14 @@ def run_experiment(
         const_opt_method='bfgs',
         float_constants=None,
         epochs=100,
-        train_size=20000,
+        train_size=40000,
         test_size=10000,
         n_formulas_to_sample=2000,
         max_formula_length=15,
         formula_predicate=None,
-        device=torch.device('cuda')
+        device=torch.device('cuda'),
+        latent=8,
+        lstm_hidden_dim=128
 ):
     if functions is None:
         functions = ['sin', 'add', 'cos', 'mul']
@@ -80,9 +82,9 @@ def run_experiment(
         arities={'sin': 1, 'add': 2, 'sub': 2, 'safe_log': 1, 'cos': 1, 'mul': 2,
                  'safe_sqrt': 1, 'safe_exp': 1, 'safe_div': 2, 'safe_pow': 2},
         free_variables=free_variables,
-        model_params={'token_embedding_dim': 128, 'hidden_dim': 128,
+        model_params={'token_embedding_dim': 128, 'hidden_dim': lstm_hidden_dim,
                       'encoder_layers_cnt': 1, 'decoder_layers_cnt': 1,
-                      'latent_dim': 8, 'x_dim': len(free_variables)},
+                      'latent_dim': latent, 'x_dim': len(free_variables)},
         is_condition=False,
         sample_from_logits=True,
         n_formulas_to_sample=n_formulas_to_sample,
@@ -102,7 +104,8 @@ def run_experiment(
         logger = None
         warnings.warn('Logging disabled! Please provide wandb_key at {}'.format(root_dir))
     vs = rs_vae_solver.VAESolver(logger, None, vae_solver_params)
-    vs.create_checkpoint(os.path.join(log_dir, 'checkpoint_1'))
+    #vs = rs_vae_solver.VAESolver(logger, os.path.join(log_dir, f'checkpoint_no_const_9-12'), vae_solver_params)
+    #vs.create_checkpoint(os.path.join(log_dir, f'checkpoint_no_const_latent_{latent}'))
     vs.solve((X, y_true), epochs=epochs)
 
     def final_log(top_k, mses, formulas):
@@ -135,6 +138,7 @@ def run_experiment(
         return data
 
     def final_log2(pareto_best_formulas):
+        result = False
         complexity_best, pareto_best = [], []
         error_to_beat = 1e9
         pareto_best_formulas = dict(sorted(pareto_best_formulas.items()))
@@ -157,16 +161,18 @@ def run_experiment(
             complexity_best.append([complexity, f.repr(constants), error, tm, success])
             if error < error_to_beat:
                 error_to_beat = error
+                if success: result = True
                 pareto_best.append([complexity, f.repr(constants), error, tm, success])
 
-        return complexity_best, pareto_best
-    complexity_best, pareto_best = final_log2(vs.stats.all_best_per_complexity)
+        return complexity_best, pareto_best, result
+    complexity_best, pareto_best, result = final_log2(vs.stats.all_best_per_complexity)
     if logger is not None:
         wandb.log({
-            'all_time_best': wandb.Table(data=final_log(10, vs.stats.all_best_mses, vs.stats.all_best_formulas),
-                                         columns=['rank', 'formula', 'mse', 'true_mse', 'success']),
-            'last_step_best': wandb.Table(data=final_log(10, vs.stats.last_n_best_mses, vs.stats.last_n_best_formulas),
-                                          columns=['rank', 'formula', 'mse', 'true_mse', 'success']),
+            'success': result,
+            #'all_time_best': wandb.Table(data=final_log(10, vs.stats.all_best_mses, vs.stats.all_best_formulas),
+            #                             columns=['rank', 'formula', 'mse', 'true_mse', 'success']),
+            #'last_step_best': wandb.Table(data=final_log(10, vs.stats.last_n_best_mses, vs.stats.last_n_best_formulas),
+            #                              columns=['rank', 'formula', 'mse', 'true_mse', 'success']),
             'complexity_best': wandb.Table(data=complexity_best,
                                            columns=['complexity', 'formula', 'mse', 'true_mse', 'success']),
             'pareto_best': wandb.Table(data=pareto_best,

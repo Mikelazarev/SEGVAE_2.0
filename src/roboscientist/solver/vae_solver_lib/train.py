@@ -73,6 +73,8 @@ def build_ordered_batches(formula_file, solver):
                 ys.append(solver.ys.reshape(-1, 1))
 
     batches = []
+    if total_count == 0:
+        return None, None
     order = range(len(formulas))  # This will be necessary for reconstruction, however, for generation this is not used
     sorted_formulas, sorted_Xs, sorted_ys, order = zip(*sorted(zip(formulas, Xs, ys, order), key=lambda x: len(x[0])))
     for batch_ind in range((len(sorted_formulas) + solver.params.batch_size - 1) // solver.params.batch_size):
