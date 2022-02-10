@@ -4,7 +4,8 @@ import random
 import numpy as np
 from roboscientist.equation import operators
 
-def generate_formula(all_tokens, max_len, functions, arities):
+
+def generate_formula(all_tokens, max_len, functions):
     while True:
         const_ind = 0
         formula = []
@@ -18,14 +19,14 @@ def generate_formula(all_tokens, max_len, functions, arities):
                 token = random.choice(operators.FLOAT_CONST)
             formula.append(token)
             if token in functions:
-                tokens_required += (arities[token] - 1)
+                tokens_required += (operators.OPERATORS[token].arity - 1)
             else:
                 tokens_required -= 1
             if tokens_required == 0:
                 return ' '.join(formula)
 
 
-def generate_pretrain_dataset(size, max_len, file=None, functions=None, arities=None, all_tokens=None,
+def generate_pretrain_dataset(size, max_len, file=None, functions=None, all_tokens=None,
                               formula_predicate=None):
     if all_tokens is None:
         # all_tokens = ['x1', 'sin', 'add', 'safe_log', 'safe_sqrt', 'cos', 'mul', 'sub', 'const']
@@ -34,15 +35,12 @@ def generate_pretrain_dataset(size, max_len, file=None, functions=None, arities=
     if functions is None:
         # functions = ['sin', 'add', 'safe_log', 'safe_sqrt', 'cos', 'mul', 'sub']
         functions = ['sin', 'add', 'cos', 'mul']
-    if arities is None:
-        arities = {'cos': 1, 'sin': 1, 'add': 2, 'mul': 2,  'div': 2, 'sub': 2, 'pow': 2, 'safe_log': 1,
-                   'safe_sqrt': 1, 'safe_exp': 1, 'safe_div': 2, 'safe_pow': 2}
     if formula_predicate is None:
         formula_predicate = lambda func: True
 
     formulas = []
     while len(formulas) < size:
-        new_formulas = [generate_formula(all_tokens, max_len, functions, arities) for _ in range(size)]
+        new_formulas = [generate_formula(all_tokens, max_len, functions) for _ in range(size)]
         # new_formulas = [formula_infix_utils.clear_redundant_operations(
         #     f.split(), functions, arities) for f in new_formulas]
         # new_formulas = [' '.join(f) for f in new_formulas]
