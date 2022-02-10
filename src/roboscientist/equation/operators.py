@@ -54,7 +54,7 @@ def _SAFE_POW_FUNC(x, y):
                            coeff * _SAFE_EXP_FUNC(y * _SAFE_LOG_FUNC(torch.abs(x))))
     else:
         with np.errstate(divide='ignore', invalid='ignore', over='ignore'):
-            coeff = np.where(np.equal(np.mod(y, 1), 0), (-1) ** y, 0.0)
+            coeff = np.where(np.equal(np.mod(y, 1), 0), (-1) ** y, 0.0).astype(np.float64)
             return np.where(x > 0, _SAFE_EXP_FUNC(y * _SAFE_LOG_FUNC(x)),
                             coeff * _SAFE_EXP_FUNC(y * _SAFE_LOG_FUNC(np.abs(x))))
 
@@ -95,40 +95,68 @@ OPERATORS = {
         arity=1,
         complexity=3,
     ),
-    'safe_log': Operator(
+    'log': Operator(
         func=lambda x: _SAFE_LOG_FUNC(x),
         name='safe_log',
         repr=lambda x: f'log({x})',
         arity=1,
         complexity=4,
     ),
-    'safe_sqrt': Operator(
+    'sqrt': Operator(
         func=lambda x: _SAFE_SQRT_FUNC(x),
         name='safe_sqrt',
         repr=lambda x: f'sqrt({x})',
         arity=1,
         complexity=2,
     ),
-    'safe_div': Operator(
+    'div': Operator(
         func=lambda x, y: _SAFE_DIV_FUNC(x, y),
         name='safe_div',
         repr=lambda x, y: f'({x} / {y})',
         arity=2,
         complexity=2,
     ),
-    'safe_exp': Operator(
+    'exp': Operator(
         func=lambda x: _SAFE_EXP_FUNC(x),
         name='safe_exp',
         repr=lambda x: f'(e^{x})',
         arity=1,
         complexity=4,
     ),
-    'safe_pow': Operator(
+    'pow': Operator(
         func=lambda x, y: _SAFE_POW_FUNC(x, y),
         name='safe_pow',
         repr=lambda x, y: f'({x}^{y})',
         arity=2,
         complexity=4,
+    ),
+    'pow2': Operator(
+        func=lambda x: _SAFE_POW_FUNC(x, 2),
+        name='safe_pow2',
+        repr=lambda x: f'({x}^{2})',
+        arity=1,
+        complexity=3,
+    ),
+    'e': Operator(
+        func=lambda: np.e,
+        name='e',
+        repr=lambda: f'e',
+        arity=0,
+        complexity=1,
+    ),
+    'pi': Operator(
+        func=lambda: np.e,
+        name='pi',
+        repr=lambda: f'pi',
+        arity=0,
+        complexity=1,
+    ),
+    '0.5': Operator(
+        func=lambda: 0.5,
+        name='half',
+        repr=lambda: f'0.5',
+        arity=0,
+        complexity=1
     ),
 }
 
