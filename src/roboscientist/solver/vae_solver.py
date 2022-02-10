@@ -197,7 +197,7 @@ class VAESolver(rs_solver_base.BaseSolver):
             print("===== END PRETRAIN =====")
 
     def log_metrics(self, reference_dataset, candidate_equations, all_constants, custom_log):
-        if self._logger is not None and False:
+        if self._logger is not None:
             if not self.params.active_learning:
                 self._logger.log_metrics(reference_dataset, candidate_equations, all_constants)
             else:

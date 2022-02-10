@@ -4,6 +4,7 @@ import argparse
 from experiments import run_experiment
 import roboscientist.equation.equation as rs_equation
 import roboscientist.equation.operators as rs_operators
+from equation_test import EQUATIONS
 
 
 def get_offsprings(list_of_tokens, idx):
@@ -34,23 +35,6 @@ def predicate(list_of_tokens):
     return True
 
 
-NGUYEN = {
-    '1': (['add', 'x1', 'add', 'mul', 'x1', 'x1', 'mul', 'mul', 'x1', 'x1', 'x1'], ['x1']),
-    '2': (['mul', 'add', 'x1', '1.0', 'mul', 'x1', 'add', '1.0', 'mul', 'x1', 'x1'], ['x1']),
-    '3': (['add', 'x1', 'mul', 'add', 'x1', 'mul', 'x1', 'x1', 'add', 'x1', 'mul', 'mul', 'x1', 'x1', 'x1'], ['x1']),
-    '4': (['add', 'x1', 'add', 'mul', 'x1', 'x1', 'add', 'safe_pow', 'x1', '3.0',
-          'add', 'safe_pow', 'x1', '4.0', 'add', 'safe_pow', 'x1', '5.0', 'safe_pow', 'x1', '6.0'], ['x1']),
-    '5': (['sub', 'mul', 'sin', 'mul', 'x1', 'x1', 'cos', 'x1', '1.0'], ['x1']),
-    '6': (['add', 'sin', 'x1', 'sin', 'add', 'x1', 'mul', 'x1', 'x1'], ['x1']),
-    '7': (['add', 'safe_log', 'add', 'x1', '1.0', 'safe_log', 'add', 'mul', 'x1', 'x1', '1.0'], ['x1']),
-    '8': (['safe_pow', 'x1', 'safe_div', '1.0', '2.0'], ['x1']),
-    '9': (['add', 'sin', 'x1', 'sin', 'mul', 'x2', 'x2'], ['x1', 'x2']),
-    '10': (['mul', '2.0', 'mul', 'sin', 'x1', 'cos', 'x2'], ['x1', 'x2']),
-    '11': (['safe_pow', 'x1', 'x2'], ['x1', 'x2']),
-    '12': (['add', 'sub', 'safe_pow', 'x1', '4.0', 'safe_pow', 'x1', '3.0',
-           'sub', 'safe_div', 'mul', 'x2', 'x2', '2.0', 'x2'], ['x1', 'x2'])
-}
-
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
@@ -59,29 +43,31 @@ if __name__ == '__main__':
     parser.add_argument("--noise", type=str)
     parser.add_argument("--latent", type=int)
     parser.add_argument("--hidden", type=int)
+    parser.add_argument("--pretrain", type=int)
     args = parser.parse_args()
 
-    filename = f'Nguyen-{args.eq}_n0.{args.noise:0>2}_d10.csv'
-    true_func, free_variables = NGUYEN[args.eq]
+    filename = f'{args.eq}_noise0.{args.noise:0>2}.csv'
+    true_func, free_variables = EQUATIONS[args.eq]
     df = pd.read_csv(os.path.join(args.path, filename), sep=',', header=None)
     X = df.iloc[:, :-1]
     y = df.iloc[:, -1]
     print(X.shape)
     run_experiment(
         X.values, y.values,
-        functions=['add', 'sub', 'mul', 'safe_div', 'sin', 'cos', 'safe_log', 'safe_pow'],
+        functions=list(rs_operators.OPERATORS.keys()),
         free_variables=free_variables,
-        wandb_proj='latent128',
-        project_name=f'{filename[:-7]}_wo_const_latent_{args.latent}',
+        wandb_proj='WANDB-PROJECT',
+        project_name='EXP-NAME',
         constants=[],
-        float_constants=None, # rs_operators.FLOAT_CONST,
+        float_constants=rs_operators.FLOAT_CONST,
         epochs=400,
         n_formulas_to_sample=5000,
-        max_formula_length=25,
+        max_formula_length=30,
         formula_predicate=predicate,
         true_formula=rs_equation.Equation(true_func),
         latent=args.latent,
         lstm_hidden_dim=args.hidden,
-        device='cuda'
+        device='cuda',
+        log_intermediate_steps=True,
+        pretrain_path=args.pretrain,
     )
-

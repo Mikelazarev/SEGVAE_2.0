@@ -18,12 +18,11 @@ def run_experiment(
         X,
         y_true,
         true_formula=None,
-        functions=None,  # list, subset of ['sin', 'add', 'safe_log', 'safe_sqrt', 'cos', 'mul', 'sub']
-        arities=None,
-        free_variables=None,  # ['x1']
+        functions=None,
+        free_variables=None,
         wandb_proj='some_experiments',
         project_name='COLAB',
-        constants=None,  # None or ['const']
+        constants=None,
         const_opt_method='bfgs',
         float_constants=None,
         epochs=100,
@@ -34,13 +33,12 @@ def run_experiment(
         formula_predicate=None,
         device=torch.device('cuda'),
         latent=8,
-        lstm_hidden_dim=128
+        lstm_hidden_dim=128,
+        log_intermediate_steps=True,
+        pretrain_path=None,
 ):
     if functions is None:
         functions = ['sin', 'add', 'cos', 'mul']
-    if arities is None:
-        arities = {'cos': 1, 'sin': 1, 'add': 2, 'mul': 2,  'div': 2, 'sub': 2, 'pow': 2, 'safe_log': 1,
-                   'safe_sqrt': 1, 'safe_exp': 1, 'safe_div': 2, 'safe_pow': 2}
     if free_variables is None:
         free_variables = ['x1']
     if constants is None:
@@ -55,14 +53,18 @@ def run_experiment(
     root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
     log_dir = os.path.join(root_dir, 'logs/')
     os.makedirs(log_dir, exist_ok=True)
-    train_file = os.path.join(log_dir, f'train_{str(time.time())}')
+    if pretrain_path is None:
+        train_file = os.path.join(log_dir, f'train_{str(time.time())}')
+        rs_equation_generator.generate_pretrain_dataset(train_size, max_formula_length, train_file,
+                                                        functions=functions,
+                                                        all_tokens=functions + free_variables + constants + pretrain_float_token,
+                                                        formula_predicate=formula_predicate)
+    else:
+        train_file = pretrain_path
+
     val_file = os.path.join(log_dir, f'val_{str(time.time())}')
-    rs_equation_generator.generate_pretrain_dataset(train_size, max_formula_length, train_file,
-                                                    functions=functions, arities=arities,
-                                                    all_tokens=functions + free_variables + constants + pretrain_float_token,
-                                                    formula_predicate=formula_predicate)
     rs_equation_generator.generate_pretrain_dataset(test_size, max_formula_length, val_file,
-                                                    functions=functions, arities=arities,
+                                                    functions=functions,
                                                     all_tokens=functions + free_variables + constants + pretrain_float_token,
                                                     formula_predicate=formula_predicate)
 
@@ -103,41 +105,15 @@ def run_experiment(
     else:
         logger = None
         warnings.warn('Logging disabled! Please provide wandb_key at {}'.format(root_dir))
-    vs = rs_vae_solver.VAESolver(logger, None, vae_solver_params)
-    #vs = rs_vae_solver.VAESolver(logger, os.path.join(log_dir, f'checkpoint_no_const_9-12'), vae_solver_params)
-    #vs.create_checkpoint(os.path.join(log_dir, f'checkpoint_no_const_latent_{latent}'))
+    if log_intermediate_steps:
+        vae_logger = logger
+    else:
+        vae_logger = None
+
+    vs = rs_vae_solver.VAESolver(vae_logger, None, vae_solver_params)
     vs.solve((X, y_true), epochs=epochs)
 
-    def final_log(top_k, mses, formulas):
-        used = set()
-        unique_pairs = [x for x in zip(mses, formulas) if x[1] not in used and (used.add(x[1]) or True)]
-        mses, formulas = list(zip(*unique_pairs))
-
-        top_indices = np.argsort(mses)[:top_k]
-        top_formulas = np.array(formulas)[top_indices]
-        top_mses = np.array(mses)[top_indices]
-        data = []
-
-        const = rs_optimize_constants.optimize_constants(true_formula, X, y_true, const_opt_method)
-        yt = true_formula.func(X, const)
-        if type(yt) is float or yt.shape == (1,) or yt.shape == (1, 1) or yt.shape == ():
-            yt = np.repeat(np.array(yt).astype(np.float64),
-                           X.reshape(-1, vs.params.model_params['x_dim']).shape[0]).reshape(-1, 1)
-
-        for i, (f, m) in enumerate(zip(top_formulas, top_mses)):
-            f = rs_equation.Equation(f.split())
-            const = rs_optimize_constants.optimize_constants(f, X, y_true, const_opt_method)
-            y_pred = f.func(X, const)
-            if type(y_pred) is float or y_pred.shape == (1,) or y_pred.shape == (1, 1) or y_pred.shape == ():
-                y_pred = np.repeat(np.array(y_pred).astype(np.float64),
-                                   X.reshape(-1, vs.params.model_params['x_dim']).shape[0]).reshape(-1, 1)
-
-            tm = mean_squared_error(y_pred, yt)
-            success = True if tm < 1e-9 else False
-            data.append([i + 1, f.repr(constants), m, tm, success])
-        return data
-
-    def final_log2(pareto_best_formulas):
+    def final_log(pareto_best_formulas):
         result = False
         complexity_best, pareto_best = [], []
         error_to_beat = 1e9
@@ -165,14 +141,11 @@ def run_experiment(
                 pareto_best.append([complexity, f.repr(constants), error, tm, success])
 
         return complexity_best, pareto_best, result
-    complexity_best, pareto_best, result = final_log2(vs.stats.all_best_per_complexity)
+    complexity_best, pareto_best, result = final_log(vs.stats.all_best_per_complexity)
+
     if logger is not None:
         wandb.log({
             'success': result,
-            #'all_time_best': wandb.Table(data=final_log(10, vs.stats.all_best_mses, vs.stats.all_best_formulas),
-            #                             columns=['rank', 'formula', 'mse', 'true_mse', 'success']),
-            #'last_step_best': wandb.Table(data=final_log(10, vs.stats.last_n_best_mses, vs.stats.last_n_best_formulas),
-            #                              columns=['rank', 'formula', 'mse', 'true_mse', 'success']),
             'complexity_best': wandb.Table(data=complexity_best,
                                            columns=['complexity', 'formula', 'mse', 'true_mse', 'success']),
             'pareto_best': wandb.Table(data=pareto_best,
