@@ -1,6 +1,7 @@
 from heapq import merge
 import numpy as np
 from sklearn.metrics import mean_squared_error
+from torch.utils.tensorboard import SummaryWriter
 import wandb
 
 
@@ -39,6 +40,7 @@ class WandbLogger():
         :param mode: wandb mode. Can be 'online' or 'offline'
         """
         super().__init__()
+        self.tb_writer = SummaryWriter()
         self._project = project_name
         self._experiment_name = experiment_name
         wandb.init(project=self._project, name=experiment_name, mode=mode)
@@ -114,7 +116,7 @@ class WandbLogger():
             key=lambda x: x[1]))[:self._n_best_equations_to_store]
         self._ordered_best_mses = [x[1] for x in best_ordered_equation_mse_pairs]
         self._ordered_best_formulas = [x[0] for x in best_ordered_equation_mse_pairs]
-
+        self.tb_writer.add_scalar('Best_mse/train', self._ordered_best_mses.min())
         if AL_Xs is not None and AL_ys is not None:
 
             mses = []
