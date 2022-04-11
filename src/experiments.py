@@ -36,6 +36,7 @@ def run_experiment(
         lstm_hidden_dim=128,
         log_intermediate_steps=True,
         pretrain_path=None,
+        domains=None,
 ):
     if functions is None:
         functions = ['sin', 'add', 'cos', 'mul']
@@ -94,6 +95,7 @@ def run_experiment(
         pretrain_val_file=val_file,
         const_opt_method=const_opt_method,
         max_formula_length=max_formula_length,
+        domains=domains,
     )
 
     if os.path.isfile(os.path.join(root_dir, 'wandb_key')):

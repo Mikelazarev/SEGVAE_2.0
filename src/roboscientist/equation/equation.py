@@ -2,7 +2,7 @@ import roboscientist.equation.operators as rs_operators
 
 from collections import deque
 import numpy as np
-
+import sympy as sp
 
 class ConstantsCountError(Exception):
     pass
@@ -21,6 +21,9 @@ class Equation:
 
     def check_validity(self):
         return self._status == 'OK', self._status
+
+    def __len__(self):
+        return len(self._prefix_list)
 
     def repr(self, constants=None):
         if constants is None:
@@ -106,3 +109,32 @@ class Equation:
             return f'Invalid Equation {self._prefix_list}', None
         self._repr = stack.pop()
         return 'OK', complexity
+
+    def sympy_expr(self, constants=None):
+        stack = deque()
+        const_ind = 0
+        for elem in self._prefix_list[::-1]:
+            if elem in rs_operators.FLOAT_CONST:
+                stack.append(float(elem))
+                continue
+            if elem in rs_operators.VARIABLES:
+                stack.append(sp.Symbol(elem))
+                continue
+            if elem == rs_operators.CONST_SYMBOL:
+                if constants is not None and const_ind < len(constants):
+                    stack.append(constants[const_ind])
+                    const_ind += 1
+                else:
+                    raise ConstantsCountError(f'not enough constants passed {self._prefix_list}, {constants}')
+                continue
+            if elem in rs_operators.OPERATORS:
+                operator = rs_operators.OPERATORS[elem]
+                if len(stack) < operator.arity:
+                    return f'Invalid Equation {self._prefix_list}', None
+                args = [stack.pop() for _ in range(operator.arity)]
+                stack.append(operator.sympy(*args))
+                continue
+            return f'Invalid symbol in Equation {self._prefix_list}', None
+        if len(stack) != 1:
+            return f'Invalid Equation {self._prefix_list}', None
+        return stack.pop()
