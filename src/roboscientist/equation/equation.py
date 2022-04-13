@@ -138,3 +138,47 @@ class Equation:
         if len(stack) != 1:
             return f'Invalid Equation {self._prefix_list}', None
         return stack.pop()
+
+    @staticmethod
+    def sympy_to_sting(sympy_expr):
+        f_list = []
+        stack = deque()
+        stack.append(sympy_expr)
+        while True:
+            if len(stack) == 0:
+                break
+            root = stack.pop()
+            f, a = root.func, root.args
+            n_args = len(root.args)
+            if isinstance(root, sp.core.numbers.Float):
+                f_list.append(rs_operators.CONST_SYMBOL)
+            elif isinstance(root, sp.core.numbers.Integer):
+                if str(root) in rs_operators.FLOAT_CONST:
+                    f_list.append(str(root))
+                elif str(-root) in rs_operators.FLOAT_CONST and '-1' in rs_operators.FLOAT_CONST:
+                    f_list.extend(['mul', '-1', str(-root)])
+                else:
+                    f_list.append(rs_operators.CONST_SYMBOL)
+            elif isinstance(root, sp.core.numbers.Half):
+                if '0.5' in rs_operators.FLOAT_CONST:
+                    f_list.append('0.5')
+                else:
+                    f_list.append(rs_operators.CONST_SYMBOL)
+            elif isinstance(root, sp.core.power.Pow):
+                f_list.extend(['pow'])
+            elif isinstance(root, sp.core.add.Add):
+                f_list.extend(['add'] * (n_args - 1))
+            elif isinstance(root, sp.core.mul.Mul):
+                f_list.extend(['mul'] * (n_args - 1))
+            elif isinstance(root, sp.core.symbol.Symbol):
+                f_list.append(root.name)
+            elif isinstance(root, sp.sin):
+                f_list.append('sin')
+            elif isinstance(root, sp.cos):
+                f_list.append('cos')
+            elif isinstance(root, sp.log):
+                f_list.append('log')
+            else:
+                f_list.append(f)
+            stack.extend(a[::-1])
+        return f_list

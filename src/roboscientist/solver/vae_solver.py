@@ -4,6 +4,7 @@ import roboscientist.solver.vae_solver_lib.config as rs_config
 import roboscientist.solver.vae_solver_lib.model as rs_model
 import roboscientist.solver.vae_solver_lib.train as rs_train
 import roboscientist.equation.equation as rs_equation
+import roboscientist.equation.operators as rs_operators
 
 from sklearn.metrics import mean_squared_error
 
@@ -101,6 +102,7 @@ VAESolverParams = namedtuple(
         'const_opt_method',                         # Str: Type of constant optimizers. Should be one of "bfgs", "adam"
 
         'domains',                                  # TODO
+        'simplification',                           # TODO
     ])
 
 VAESolverParams.__new__.__defaults__ = (
@@ -151,6 +153,7 @@ VAESolverParams.__new__.__defaults__ = (
     'active_learning_sample',                       # active_learning_file_to_sample
     'bfgs',                                         # const_opt_method
     None,                                           # domains TODO
+    False,                                          # simplification TODO
 )
 
 
@@ -170,7 +173,8 @@ class VAESolver(rs_solver_base.BaseSolver):
 
         if self.params.retrain_strategy == 'last_steps':
             self.stats = FormulaStatisticsLastN(use_n_last_steps=self.params.use_n_last_steps,
-                                                percentile=self.params.percentile)
+                                                percentile=self.params.percentile,
+                                                simplification=self.params.simplification)
         if self.params.retrain_strategy == 'queue':
             self.stats = FormulaStatisticsQueue(self.params.queue_size)
 
@@ -338,7 +342,7 @@ class VAESolver(rs_solver_base.BaseSolver):
 
 
 class FormulaStatisticsLastN:
-    def __init__(self, use_n_last_steps, percentile):
+    def __init__(self, use_n_last_steps, percentile, simplification):
         self.reconstructed_formulas = []
         self.last_n_best_formulas = []
         self.last_n_best_mses = []
@@ -347,6 +351,7 @@ class FormulaStatisticsLastN:
         self.all_best_formulas = []
         self.all_best_mses = []
         self.all_best_per_complexity = {}
+        self.simplification = simplification
 
     def clear_the_oldest_step(self):
         s = self.last_n_best_sizes.popleft()
@@ -356,8 +361,23 @@ class FormulaStatisticsLastN:
     def save_best_samples(self, sampled_mses, sampled_formulas):
         mse_threshold = np.nanpercentile(sampled_mses + self.last_n_best_mses, self.percentile)
         epoch_best_mses = [x for x in sampled_mses if x < mse_threshold]
-        epoch_best_formulas = [
-            sampled_formulas[i] for i in range(len(sampled_formulas)) if sampled_mses[i] < mse_threshold]
+        epoch_best_formulas = []
+        for i in range(len(sampled_formulas)):
+            if sampled_mses[i] < mse_threshold:
+                f = sampled_formulas[i]
+                if self.simplification:
+                    try:
+                        sympy_expr = f.sympy_expr().simplify()
+                        simple_tokens = rs_equation.Equation.sympy_to_sting(sympy_expr)
+                        simple_f = rs_equation.Equation(simple_tokens)
+                        if not simple_f.check_validity()[0] or simple_f.complexity > f.complexity or \
+                                rs_operators.CONST_SYMBOL in simple_f:
+                            epoch_best_formulas.append(f)
+                    except:
+                        print('simplify error: ', f.repr())
+                        epoch_best_formulas.append(f)
+                else:
+                    epoch_best_formulas.append(f)
         assert len(epoch_best_mses) == len(epoch_best_formulas)
 
         self.last_n_best_sizes.append(len(epoch_best_formulas))

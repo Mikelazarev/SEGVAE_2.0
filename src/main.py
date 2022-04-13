@@ -1,4 +1,6 @@
 import os
+
+import numpy as np
 import sympy as sp
 import pandas as pd
 import argparse
@@ -47,23 +49,17 @@ if __name__ == '__main__':
     parser.add_argument("--pretrain", type=int)
     args = parser.parse_args()
 
-    #filename = f'{args.eq}_noise0.{args.noise:0>2}.csv'
-    filename = f'Nguyen-{args.eq[1:]}_n0.{args.noise:0>2}_d10.csv'
+    filename = f'{args.eq}_noise0.{args.noise:0>2}.csv'
     true_func, free_variables = EQUATIONS[args.eq]
     df = pd.read_csv(os.path.join(args.path, filename), sep=',', header=None)
     X = df.iloc[:, :-1]
     y = df.iloc[:, -1]
     print(X.shape)
 
-    domains = []
-    for var_idx in range(X.shape[-1]):
-        domain = sp.Interval(X.min(axis=0)[var_idx], X.max(axis=0)[var_idx])
-        domains.append(domain)
-
-    lows = [X.min(axis=0)[var_idx] for var_idx in range(X.shape[-1])]
-    highs = [X.max(axis=0)[var_idx] for var_idx in range(X.shape[-1])]
-    y_dom = (-25, 25)
-    domains_grid = (lows, highs, y_dom)
+    x_lows = [X.min(axis=0)[var_idx] for var_idx in range(X.shape[-1])]
+    x_highs = [X.max(axis=0)[var_idx] for var_idx in range(X.shape[-1])]
+    y_dom = (-np.inf, np.inf)
+    domains_grid = (x_lows, x_highs, y_dom)
 
     run_experiment(
         X.values, y.values,
@@ -84,4 +80,5 @@ if __name__ == '__main__':
         log_intermediate_steps=True,
         pretrain_path=args.pretrain,
         domains=domains_grid,
+        simplification=True,
     )

@@ -116,7 +116,6 @@ class WandbLogger():
             key=lambda x: x[1]))[:self._n_best_equations_to_store]
         self._ordered_best_mses = [x[1] for x in best_ordered_equation_mse_pairs]
         self._ordered_best_formulas = [x[0] for x in best_ordered_equation_mse_pairs]
-        self.tb_writer.add_scalar('Best_mse/train', self._ordered_best_mses.min())
         if AL_Xs is not None and AL_ys is not None:
 
             mses = []

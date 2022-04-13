@@ -126,30 +126,30 @@ OPERATORS = {
         complexity=2,
         sympy=lambda x, y: sp.Mul(x, sp.Pow(y, -1)),
     ),
-    # 'exp': Operator(
-    #     func=lambda x: _SAFE_EXP_FUNC(x),
-    #     name='safe_exp',
-    #     repr=lambda x: f'(e^{x})',
-    #     arity=1,
-    #     complexity=4,
-    #     sympy=lambda x: sp.exp(x, evaluate=False),
-    # ),
-    # 'pow': Operator(
-    #     func=lambda x, y: _SAFE_POW_FUNC(x, y),
-    #     name='safe_pow',
-    #     repr=lambda x, y: f'({x}^{y})',
-    #     arity=2,
-    #     complexity=4,
-    #     sympy=lambda x, y: sp.Pow(x, y, evaluate=False),
-    # ),
-    # 'pow2': Operator(
-    #     func=lambda x: _SAFE_POW_FUNC(x, 2),
-    #     name='safe_pow2',
-    #     repr=lambda x: f'({x}^{2})',
-    #     arity=1,
-    #     complexity=3,
-    #     sympy=lambda x: sp.Pow(x, 2, evaluate=False),
-    # ),
+    'exp': Operator(
+        func=lambda x: _SAFE_EXP_FUNC(x),
+        name='safe_exp',
+        repr=lambda x: f'(e^{x})',
+        arity=1,
+        complexity=4,
+        sympy=lambda x: sp.exp(x, evaluate=False),
+    ),
+    'pow': Operator(
+        func=lambda x, y: _SAFE_POW_FUNC(x, y),
+        name='safe_pow',
+        repr=lambda x, y: f'({x}^{y})',
+        arity=2,
+        complexity=4,
+        sympy=lambda x, y: sp.Pow(x, y, evaluate=False),
+    ),
+    'pow2': Operator(
+        func=lambda x: _SAFE_POW_FUNC(x, 2),
+        name='safe_pow2',
+        repr=lambda x: f'({x}^{2})',
+        arity=1,
+        complexity=3,
+        sympy=lambda x: sp.Pow(x, 2, evaluate=False),
+    ),
     'e': Operator(
         func=lambda: np.e,
         name='e',
@@ -186,7 +186,7 @@ VARIABLES = {
 }
 CONST_SYMBOL = 'const'
 
-FLOAT_CONST = ['-1.0', '1.0', '2.0', '3.0', '4.0', '5.0', '6.0', '7.0', '8.0', '9.0', '10.0']
+FLOAT_CONST = ['-1', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
 
 VAR_CONST_COMPLEXITY = 1
 
