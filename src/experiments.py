@@ -97,7 +97,7 @@ def run_experiment(
         const_opt_method=const_opt_method,
         max_formula_length=max_formula_length,
         domains=domains,
-        simplification=False,
+        simplification=simplification,
     )
 
     if os.path.isfile(os.path.join(root_dir, 'wandb_key')):
