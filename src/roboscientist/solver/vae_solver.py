@@ -364,22 +364,23 @@ class FormulaStatisticsLastN:
         epoch_best_formulas = []
         for i in range(len(sampled_formulas)):
             if sampled_mses[i] < mse_threshold:
-                f = sampled_formulas[i]
+                f_string = sampled_formulas[i]
+                f_equation = rs_equation.Equation(f_string.split())
                 if self.simplification:
                     try:
-                        sympy_expr = f.sympy_expr().simplify()
+                        sympy_expr = f_equation.sympy_expr().simplify()
                         simple_tokens = rs_equation.Equation.sympy_to_sting(sympy_expr)
                         simple_f = rs_equation.Equation(simple_tokens)
-                        if not simple_f.check_validity()[0] or simple_f.complexity > f.complexity or \
-                                rs_operators.CONST_SYMBOL in simple_f:
-                            epoch_best_formulas.append(f)
+                        simple_string = " ".join(simple_f._prefix_list)
+                        if not simple_f.check_validity()[0] or simple_f.complexity >= f_equation.complexity or \
+                                rs_operators.CONST_SYMBOL in simple_string:
+                            epoch_best_formulas.append(f_string)
                         else:
-                            epoch_best_formulas.append(simple_f)
-                    except:
-                        print('simplify error: ', f.repr())
-                        epoch_best_formulas.append(f)
+                            epoch_best_formulas.append(simple_string)
+                    except Exception as e:
+                        epoch_best_formulas.append(f_string)
                 else:
-                    epoch_best_formulas.append(f)
+                    epoch_best_formulas.append(f_string)
         assert len(epoch_best_mses) == len(epoch_best_formulas)
 
         self.last_n_best_sizes.append(len(epoch_best_formulas))
