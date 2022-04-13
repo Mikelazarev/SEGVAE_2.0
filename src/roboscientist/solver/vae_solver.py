@@ -373,6 +373,8 @@ class FormulaStatisticsLastN:
                         if not simple_f.check_validity()[0] or simple_f.complexity > f.complexity or \
                                 rs_operators.CONST_SYMBOL in simple_f:
                             epoch_best_formulas.append(f)
+                        else:
+                            epoch_best_formulas.append(simple_f)
                     except:
                         print('simplify error: ', f.repr())
                         epoch_best_formulas.append(f)
