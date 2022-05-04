@@ -16,7 +16,7 @@ def generate_formula(all_tokens, max_len, functions):
                 token = token
                 const_ind += 1
             if 'float' in token:
-                token = random.choice(operators.FLOAT_CONST)
+                token = random.choice(operators.FLOAT_CONST + operators.INT_CONST)
             formula.append(token)
             if token in functions:
                 tokens_required += (operators.OPERATORS[token].arity - 1)

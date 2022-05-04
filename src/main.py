@@ -47,6 +47,7 @@ if __name__ == '__main__':
     parser.add_argument("--latent", type=int)
     parser.add_argument("--hidden", type=int)
     parser.add_argument("--pretrain", type=int)
+    parser.add_argument("--device", type=str, default='cpu')
     args = parser.parse_args()
 
     filename = f'{args.eq}_noise0.{args.noise:0>2}.csv'
@@ -68,15 +69,15 @@ if __name__ == '__main__':
         wandb_proj='WANDB-PROJECT',
         project_name='EXP-NAME',
         constants=[],
-        float_constants=rs_operators.FLOAT_CONST,
-        epochs=400,
+        float_constants=rs_operators.FLOAT_CONST + rs_operators.INT_CONST,
+        epochs=10,
         n_formulas_to_sample=5000,
         max_formula_length=30,
         formula_predicate=predicate,
         true_formula=rs_equation.Equation(true_func),
         latent=args.latent,
         lstm_hidden_dim=args.hidden,
-        device='cuda',
+        device=args.device,
         log_intermediate_steps=True,
         pretrain_path=args.pretrain,
         domains=domains_grid,

@@ -31,7 +31,7 @@ class Equation:
         stack = deque()
         const_ind = 0
         for elem in self._prefix_list[::-1]:
-            if elem in rs_operators.VARIABLES or elem in rs_operators.FLOAT_CONST:
+            if elem in rs_operators.VARIABLES or elem in rs_operators.FLOAT_CONST or elem in rs_operators.INT_CONST:
                 stack.append(elem)
                 continue
             if elem == rs_operators.CONST_SYMBOL:
@@ -60,7 +60,7 @@ class Equation:
         stack = deque()
         const_ind = 0
         for elem in self._prefix_list[::-1]:
-            if elem in rs_operators.FLOAT_CONST:
+            if elem in rs_operators.FLOAT_CONST or elem in rs_operators.INT_CONST:
                 stack.append(float(elem))
                 continue
             if elem in rs_operators.VARIABLES:
@@ -90,7 +90,8 @@ class Equation:
         complexity = 0
         stack = deque()
         for elem in self._prefix_list[::-1]:
-            if elem in rs_operators.VARIABLES or elem == rs_operators.CONST_SYMBOL or elem in rs_operators.FLOAT_CONST:
+            if elem in rs_operators.VARIABLES or elem == rs_operators.CONST_SYMBOL \
+                        or elem in rs_operators.FLOAT_CONST or elem in rs_operators.INT_CONST:
                 stack.append(elem)
                 complexity += rs_operators.VAR_CONST_COMPLEXITY
                 if elem == rs_operators.CONST_SYMBOL:
@@ -116,6 +117,9 @@ class Equation:
         for elem in self._prefix_list[::-1]:
             if elem in rs_operators.FLOAT_CONST:
                 stack.append(float(elem))
+                continue
+            if elem in rs_operators.INT_CONST:
+                stack.append(int(elem))
                 continue
             if elem in rs_operators.VARIABLES:
                 stack.append(sp.Symbol(elem))
@@ -151,11 +155,14 @@ class Equation:
             f, a = root.func, root.args
             n_args = len(root.args)
             if isinstance(root, sp.core.numbers.Float):
-                f_list.append(rs_operators.CONST_SYMBOL)
-            elif isinstance(root, sp.core.numbers.Integer):
                 if str(root) in rs_operators.FLOAT_CONST:
                     f_list.append(str(root))
-                elif str(-root) in rs_operators.FLOAT_CONST and '-1' in rs_operators.FLOAT_CONST:
+                else:
+                    f_list.append(rs_operators.CONST_SYMBOL)
+            elif isinstance(root, sp.core.numbers.Integer):
+                if str(root) in rs_operators.INT_CONST:
+                    f_list.append(str(root))
+                elif str(-root) in rs_operators.INT_CONST and '-1' in rs_operators.INT_CONST:
                     f_list.extend(['mul', '-1', str(-root)])
                 else:
                     f_list.append(rs_operators.CONST_SYMBOL)
