@@ -57,9 +57,13 @@ if __name__ == '__main__':
     y = df.iloc[:, -1]
     print(X.shape)
 
-    x_lows = [X.min(axis=0)[var_idx] for var_idx in range(X.shape[-1])]
-    x_highs = [X.max(axis=0)[var_idx] for var_idx in range(X.shape[-1])]
-    y_dom = (-np.inf, np.inf)
+    #x_lows = [X.min(axis=0)[var_idx] for var_idx in range(X.shape[-1])]
+    #x_highs = [X.max(axis=0)[var_idx] for var_idx in range(X.shape[-1])]
+    #y_dom = (-np.inf, np.inf)
+    x_lows = [X.min(axis=0)]
+    x_highs = [X.max(axis=0)]
+    y_dom = (y.min() - 0.05 * y.min(), y.max() + 0.05 * y.max())
+    
     domains_grid = (x_lows, x_highs, y_dom)
 
     run_experiment(

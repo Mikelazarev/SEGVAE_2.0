@@ -112,7 +112,7 @@ def _evaluate(model, batches, kl_coef):
     return np.mean(losses), np.mean(rec_losses), np.mean(kl_losses)
 
 
-def run_epoch(model, optimizer, train_batches, valid_batches, kl_coef=0.01):
+def run_epoch(model, optimizer, train_batches, valid_batches, kl_coef=0.01, epoch=-1):
     kl_losses, rec_losses, losses = [], [], []
     model.train()
     indices = list(range(len(train_batches)))
@@ -128,13 +128,14 @@ def run_epoch(model, optimizer, train_batches, valid_batches, kl_coef=0.01):
         rec_losses.append(rec.item())
         losses.append(loss.item())
         kl_losses.append(kl.item())
-
+    print(f'\t [epoch {epoch}]')
     print('\t[training] batches count: %d' % len(indices))
     print('\t[training] loss: %0.3f, rec loss: %0.3f, kl: %0.3f' % (
         np.mean(losses), np.mean(rec_losses), np.mean(kl_losses)))
 
     valid_losses = _evaluate(model, valid_batches, kl_coef)
     print('\t[validation] loss: %0.3f, rec loss: %0.3f, kl: %0.3f' % valid_losses, flush=True)
+    print("======================================================================")
     train_losses = (np.mean(losses), np.mean(rec_losses), np.mean(kl_losses))
     return train_losses, valid_losses
 

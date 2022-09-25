@@ -1,7 +1,7 @@
 import numpy as np
 import sympy as sp
 import torch
-
+from scipy.special import lambertw
 
 class Operator:
     def __init__(self, func, name, repr, arity, complexity, sympy):
@@ -89,7 +89,7 @@ OPERATORS = {
     'sin': Operator(
         func=lambda x: np.sin(x),
         name='sin',
-        repr=lambda x: f'sin({x})',
+        repr=lambda x: f'np.sin({x})',
         arity=1,
         complexity=3,
         sympy=lambda x: sp.sin(x),
@@ -97,7 +97,7 @@ OPERATORS = {
     'cos': Operator(
         func=lambda x: np.cos(x),
         name='cos',
-        repr=lambda x: f'cos({x})',
+        repr=lambda x: f'np.cos({x})',
         arity=1,
         complexity=3,
         sympy=lambda x: sp.cos(x),
@@ -105,7 +105,7 @@ OPERATORS = {
     'log': Operator(
         func=lambda x: _SAFE_LOG_FUNC(x),
         name='safe_log',
-        repr=lambda x: f'log({x})',
+        repr=lambda x: f'np.log({x})',
         arity=1,
         complexity=4,
         sympy=lambda x: sp.log(x, evaluate=False),
@@ -113,7 +113,7 @@ OPERATORS = {
     'sqrt': Operator(
         func=lambda x: _SAFE_SQRT_FUNC(x),
         name='safe_sqrt',
-        repr=lambda x: f'sqrt({x})',
+        repr=lambda x: f'np.sqrt({x})',
         arity=1,
         complexity=2,
         sympy=lambda x: sp.sqrt(x, evaluate=False),
@@ -129,7 +129,7 @@ OPERATORS = {
     'exp': Operator(
         func=lambda x: _SAFE_EXP_FUNC(x),
         name='safe_exp',
-        repr=lambda x: f'(e^{x})',
+        repr=lambda x: f'(np.exp({x}))',
         arity=1,
         complexity=4,
         sympy=lambda x: sp.exp(x, evaluate=False),
@@ -137,7 +137,7 @@ OPERATORS = {
     'pow': Operator(
         func=lambda x, y: _SAFE_POW_FUNC(x, y),
         name='safe_pow',
-        repr=lambda x, y: f'({x}^{y})',
+        repr=lambda x, y: f'({x}**{y})',
         arity=2,
         complexity=4,
         sympy=lambda x, y: sp.Pow(x, y, evaluate=False),
@@ -145,7 +145,7 @@ OPERATORS = {
     'pow2': Operator(
         func=lambda x: _SAFE_POW_FUNC(x, 2),
         name='safe_pow2',
-        repr=lambda x: f'({x}^{2})',
+        repr=lambda x: f'({x}**{2})',
         arity=1,
         complexity=3,
         sympy=lambda x: sp.Pow(x, 2, evaluate=False),
@@ -174,6 +174,42 @@ OPERATORS = {
         complexity=1,
         sympy=lambda: 0.5,
     ),
+    
+    'sin**2': Operator(
+        func=lambda x: np.sin(x) * np.sin(x) ,
+        name='sin**2',
+        repr=lambda x: f'(np.sin({x}) * np.sin({x}))',
+        arity=1,
+        complexity=3,
+        sympy=lambda x: sp.Mul(sp.sin(x),sp.sin(x))  ,
+    ),
+
+    'cos**2': Operator(
+        func=lambda x: np.cos(x) * np.cos(x) ,
+        name='cos**2',
+        repr=lambda x: f'(np.cos({x}) * np.cos({x}))',
+        arity=1,
+        complexity=3,
+        sympy=lambda x: sp.Mul(sp.cos(x),sp.cos(x))  ,
+    ),
+    'OSCE': Operator(
+        func=lambda x,y,z: _SAFE_DIV_FUNC(np.cos(x) * np.cos(x) * _SAFE_EXP_FUNC(-y) , -z),
+        name='OSCE',
+        repr=lambda x,y,z: f'(-np.cos({x}) * np.cos({x}) * np.exp(-{y}) / ({z}))',
+        arity=3,
+        complexity=5,
+        sympy=lambda x,y,z: sp.Mul(sp.Mul(sp.Mul(sp.cos(x),sp.cos(x)), sp.exp(sp.Add(0, sp.Mul(-1, y), evaluate=False))) , sp.Pow(-z, -1, evaluate=False))
+    ),
+
+ 
+
+    # 'LWF': Operator(
+    #     func=lambda x: lambertw(x, k=0).real,
+    #     name='LWF',
+    #     repr=lambda x: f'(LWF({x}))',
+    #     arity=1,
+    #     complexity=3,
+    # ),
 }
 
 

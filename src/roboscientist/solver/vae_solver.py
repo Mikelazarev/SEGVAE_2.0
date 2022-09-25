@@ -311,7 +311,7 @@ class VAESolver(rs_solver_base.BaseSolver):
             return None, None, None
         if not self.params.no_retrain:
             train_losses, valid_losses = rs_train.run_epoch(self.model, self.optimizer, train_batches, train_batches,
-                                                         kl_coef=self.params.kl_coef)
+                                                         kl_coef=self.params.kl_coef, epoch=epoch)
             tr_loss, tr_rec_loss, tr_kl = train_losses
             v_loss, v_rec_loss, v_kl = valid_losses
             custom_log['retrain_train_loss'] = tr_loss

@@ -1,7 +1,7 @@
 from heapq import merge
 import numpy as np
 from sklearn.metrics import mean_squared_error
-from torch.utils.tensorboard import SummaryWriter
+#from torch.utils.tensorboard import SummaryWriter
 import wandb
 
 
@@ -40,7 +40,7 @@ class WandbLogger():
         :param mode: wandb mode. Can be 'online' or 'offline'
         """
         super().__init__()
-        self.tb_writer = SummaryWriter()
+      #  self.tb_writer = SummaryWriter()
         self._project = project_name
         self._experiment_name = experiment_name
         wandb.init(project=self._project, name=experiment_name, mode=mode)
